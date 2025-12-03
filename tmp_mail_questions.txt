@@ -1,0 +1,5 @@
+Nous avions quelques questions par rapport au modèle de Deep Learning que vous nous aviez proposé, le FCN:
+- pour les données en input, on à pour l'instant choisis d'en mettre 4: inf_ecg, inf_gsr, inf_ppg, et pixart, que l'on a resample pour que les tailles soient les mêmes. On se demandais si ce choix était cohérent.
+- sur la taille des données en input, si on les donne comme ça au réseau, ils ont une taille de 30 000 (car ce sont des données temporelles) ce qui nous paraît beaucoup pour entrainer le réseau. Faut-il donc que l'on downsample les données encore plus pour arriver à une taille plus réaliste ?
+
+
