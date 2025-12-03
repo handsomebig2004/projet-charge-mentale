@@ -1,6 +1,6 @@
 from scipy.signal import resample
 import pandas as pd
-from fcn import FCN
+from fcn import FCNBranch, FCNModel, train
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -24,7 +24,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
             x_pix_ppg.append(list(trial))
         for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
-            y.append(trial)
+            y.append(float(trial))
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
@@ -37,6 +37,9 @@ x_ecg_res_train, x_ecg_res_test, x_gsr_res_train, x_gsr_res_test, x_inf_ppg_res_
     x_ecg_res,
     x_gsr_res,
     x_inf_ppg_res,
+    x_ecg, 
+    x_gsr, 
+    x_inf_ppg,
     y,
     train_size=0.8
 )
@@ -61,4 +64,12 @@ x_inf_ppg_test_loader = torch.utils.data.DataLoader(x_inf_ppg_test, shuffle=True
 y_train_loader = torch.utils.data.DataLoader(y_train, shuffle=True, batch_size=12)
 y_test_loader = torch.utils.data.DataLoader(y_test, shuffle=True, batch_size=12)
 
+
+fcn_net=FCNModel(num_signals=3, kernel_size=4)
+
+
+loss_func=torch.nn.MSELoss()
+optim_adam=torch.optim.Adam(params= fcn_net.parameters())
+
+train(fcn_net, [x_ecg_train_loader, x_gsr_train_loader, x_inf_ppg_train_loader],  [x_ecg_test_loader, x_gsr_test_loader, x_inf_ppg_test_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=5)
 
