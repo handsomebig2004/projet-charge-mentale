@@ -19,7 +19,7 @@ class FCNBranch(nn.Module):
 
 class FCNModel(nn.Module):
     def __init__(self, num_signals, kernel_size):
-        super().__init__(self)
+        super().__init__()
 
         self.branches = nn.ModuleList([FCNBranch(kernel_size) for i in range(num_signals)])
 
@@ -43,7 +43,7 @@ def _prepare_tensor(x):
     if isinstance(x, (list, tuple)):
         x = x[0]
     if not torch.is_tensor(x):
-        x = torch.tensor(x, dtype=torch.float32)
+        x = torch.tensor(x, dtype=torch.float64)
     if x.dim() == 2:  # [batch, L] -> add channel dim
         x = x.unsqueeze(1)
     return x
@@ -52,7 +52,7 @@ def _prepare_label(y):
     if isinstance(y, (list, tuple)):
         y = y[0]
     if not torch.is_tensor(y):
-        y = torch.tensor(y, dtype=torch.float32)
+        y = torch.tensor(y, dtype=torch.float64)
     return y
 
 

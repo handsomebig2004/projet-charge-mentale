@@ -24,7 +24,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
             x_pix_ppg.append(list(trial))
         for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
-            y.append(trial)
+            y.append(float(trial))
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
@@ -37,6 +37,9 @@ x_ecg_res_train, x_ecg_res_test, x_gsr_res_train, x_gsr_res_test, x_inf_ppg_res_
     x_ecg_res,
     x_gsr_res,
     x_inf_ppg_res,
+    x_ecg, 
+    x_gsr, 
+    x_inf_ppg,
     y,
     train_size=0.8
 )
