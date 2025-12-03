@@ -99,7 +99,6 @@ def compare_diff_class_mean(X, y):
 
         svc_f1 += f1_score(y_test, SVC_grid.predict(X_test))
         svc_acc += accuracy_score(y_test, SVC_grid.predict(X_test))
-        print(SVC_grid.best_params_)
 
 
         # SVC poly
