@@ -18,7 +18,7 @@ class LSTM(nn.Module):
         x, _ = self.lstm(x)
         x = self.swish(x)
         x = self.relu(x)
-        x = self.self.linear1(x)
+        x = self.linear1(x)
         x = self.dropout(x)
         return x
     
@@ -54,3 +54,7 @@ def train(dataloader_train,dataloader_test,network,optimizer,loss, nepochs):
         print(f'Epoch {e+1} : {acc_test[-1]}')
 
     return acc_test
+
+# tester transformers avec 1 ou 2 heads
+# slide avec resultats jusque là
+# chercher autre archi dans l'état de l'art pour charge mentale

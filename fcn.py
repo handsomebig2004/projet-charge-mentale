@@ -34,7 +34,7 @@ class FCNModel(nn.Module):
         # Concatenation
         x = torch.cat(outputs, dim=1)
         x = x.view(x.size(0), -1)  # flatten
-        x = self.fc(x)
+        x = self.fc(x)  
         return x
 
 
