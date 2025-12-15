@@ -22,8 +22,8 @@ class FCNModel(nn.Module):
         super().__init__()
 
         self.branches = nn.ModuleList([FCNBranch(kernel_size) for i in range(num_signals)])
-
-        self.fc = nn.Linear(in_features=128*num_signals, out_features=1)
+        #19 197 est la longueur finale des sorties des branches après 3 couches de convolution avec kernel_size=4
+        self.fc = nn.Linear(in_features=128*num_signals*19197, out_features=1)
 
     def forward(self, x_list):
         # x_list : liste de tenseurs [batch, 1, L] pour chaque signal
@@ -117,8 +117,3 @@ def train(_net, train_loader_l, valid_loader_l, y_train_loader, y_test_loader, l
     
         print(f'Epoch {epoch}:  train loss {train_loss}, valid loss {valid_loss}')
     return train_loss_list, valid_loss_list
-
-
-
-
-    
