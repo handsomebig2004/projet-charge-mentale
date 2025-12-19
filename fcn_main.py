@@ -65,11 +65,19 @@ y_train_loader = torch.utils.data.DataLoader(torch.tensor(y_train), shuffle=True
 y_test_loader = torch.utils.data.DataLoader(torch.tensor(y_test), shuffle=True, batch_size=12)
 
 
-fcn_net=FCNModel(num_signals=3, kernel_size=4)
+
+inputs= [x_ecg_train_loader, x_gsr_train_loader, x_inf_ppg_train_loader]
+input_lengths = [
+    max(len(s) for s in x_ecg_train),
+    max(len(s) for s in x_gsr_train),
+    max(len(s) for s in x_inf_ppg_train),
+]
+
+fcn_net=FCNModel(num_signals=3, kernel_size=4, input_lengths=input_lengths)
 
 
 loss_func=torch.nn.MSELoss()
 optim_adam=torch.optim.Adam(params= fcn_net.parameters())
 
-train(fcn_net, [x_ecg_train_loader, x_gsr_train_loader, x_inf_ppg_train_loader],  [x_ecg_test_loader, x_gsr_test_loader, x_inf_ppg_test_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=5)
+train(fcn_net, inputs,  [x_ecg_test_loader, x_gsr_test_loader, x_inf_ppg_test_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=10)
 

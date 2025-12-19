@@ -1,14 +1,15 @@
 import torch
 import torch.nn as nn
+import time as t
 
 class FCNBranch(nn.Module):
     def __init__(self, kernel_size):
         super(FCNBranch, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=1, out_channels=64, kernel_size=kernel_size)
-        self.conv2 = nn.Conv1d(in_channels=64, out_channels=64, kernel_size=kernel_size)
-        self.conv3 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=kernel_size)
+        self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=kernel_size)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=kernel_size)
+        self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=kernel_size)
         self.relu = nn.ReLU()
-        self.gap = nn.AvgPool1d(kernel_size=kernel_size)
+        self.gap = nn.AdaptiveAvgPool1d(1)
 
     def forward(self, x):
         x = self.relu(self.conv1(x))
@@ -18,12 +19,15 @@ class FCNBranch(nn.Module):
         return x
 
 class FCNModel(nn.Module):
-    def __init__(self, num_signals, kernel_size):
+    def __init__(self, num_signals, kernel_size, input_lengths):
         super().__init__()
+        self.kernel_size=kernel_size
+        self.num_signals=num_signals
+
 
         self.branches = nn.ModuleList([FCNBranch(kernel_size) for i in range(num_signals)])
-        #19 197 est la longueur finale des sorties des branches après 3 couches de convolution avec kernel_size=4
-        self.fc = nn.Linear(in_features=128*num_signals*19197, out_features=1)
+
+        self.fc = nn.Linear(in_features=64*num_signals, out_features=1)
 
     def forward(self, x_list):
         # x_list : liste de tenseurs [batch, 1, L] pour chaque signal
@@ -43,7 +47,7 @@ def _prepare_tensor(x):
     if isinstance(x, (list, tuple)):
         x = x[0]
     if not torch.is_tensor(x):
-        x = torch.tensor(x, dtype=torch.float64)
+        x = torch.tensor(x, dtype=torch.float32)
     if x.dim() == 2:  # [batch, L] -> add channel dim
         x = x.unsqueeze(1)
     return x
@@ -52,7 +56,7 @@ def _prepare_label(y):
     if isinstance(y, (list, tuple)):
         y = y[0]
     if not torch.is_tensor(y):
-        y = torch.tensor(y, dtype=torch.float64)
+        y = torch.tensor(y, dtype=torch.float32)
     return y
 
 
@@ -107,6 +111,7 @@ def train(_net, train_loader_l, valid_loader_l, y_train_loader, y_test_loader, l
     train_loss_list, valid_loss_list=[],[]
 
     for epoch in range(n_epochs):
+        t_start=t.time()
 
         train_loss=epoch_train(_net, train_loader_l, y_train_loader, loss_func, optim)
         train_loss_list.append(train_loss)
@@ -114,6 +119,7 @@ def train(_net, train_loader_l, valid_loader_l, y_train_loader, y_test_loader, l
         with torch.no_grad():
             valid_loss = epoch_valid(_net, valid_loader_l, y_test_loader, loss_func, optim)
             valid_loss_list.append(valid_loss)
-    
+        t_end=t.time()
         print(f'Epoch {epoch}:  train loss {train_loss}, valid loss {valid_loss}')
+        print(f'Temps écoulé: {t_end-t_start}')
     return train_loss_list, valid_loss_list
