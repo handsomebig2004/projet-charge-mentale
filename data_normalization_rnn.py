@@ -7,7 +7,7 @@ def normalise_data():
     min_max_scaler = MinMaxScaler()
     path = os.path.join('data', 'MAUS', 'Data', 'Raw_data')
     normalized_data_path = os.path.join('data', 'MAUS', 'Data', 'Normalized_data')
-    os.makedirs(normalized_data_path, exisgit_ok=True)
+    os.makedirs(normalized_data_path, exist_ok=True)
     if not os.path.isdir(path):
         print(f"Raw data path does not exist: {path}")
         return
