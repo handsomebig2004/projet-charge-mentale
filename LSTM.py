@@ -33,21 +33,10 @@ def epoch(dataloader,network,optimizer,loss) :
         #print(loss_value.item())
         optimizer.step()
 
-
-def accuracy(network,dataloader) :
-    network.eval()
-    with torch.no_grad():
-        acc_list = []
-        for images, labels in dataloader:
-            outputs = network(images)
-            acc_list.append((torch.argmax(outputs, dim = 1) == labels).sum()/32)
-        return(sum(acc_list)/len(acc_list))
-
-
-def train(dataloader_train,dataloader_test,network,optimizer,loss, nepochs):
+def train(dataloader_train, dataloader_test, network,optimizer, loss, nepochs):
     acc_test=[]
     network.train()
-    print(f'Initially: accuracy {accuracy(network, dataloader_train)}')
+    print(f'Initially: loss {loss(network, dataloader_train)}')
     for e in range(nepochs):
         epoch(dataloader_train,network,optimizer,loss)
         acc_test.append(accuracy(network, dataloader_test))
