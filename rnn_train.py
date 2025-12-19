@@ -13,7 +13,7 @@ x_inf_ppg = []
 x_pix_ppg = []
 y = []
 
-for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
+for folder_name in os.walk("data/MAUS/Data/Normalized_data/"):
     if folder_name[0][-1] != '/':
         for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
             x_ecg.append(list(trial))
@@ -24,7 +24,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
             x_pix_ppg.append(list(trial))
         for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
-            y.append(float(trial))
+            y.append(float(np.float32(trial) / 100.0))
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
