@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import time as t
+import matplotlib.pyplot as plt
 
 class FCNBranch(nn.Module):
     def __init__(self, kernel_size):
@@ -140,7 +141,13 @@ def epoch_valid(_net, valid_loader_l, y_valid_loader, loss_func):
             y = _prepare_label(y_batch)
 
             preds = _net(x_list)
-            #computing validation loss
+            if tot_loss == 0:
+                print(preds[:5])
+                print(y[:5])
+                plt.plot(range(len(preds)), preds)
+                plt.plot(range(len(y)), y)
+                plt.show()
+
             loss = loss_func(preds.squeeze(), y.float())
 
             n_samples += y.size(0)
