@@ -45,11 +45,13 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
             for k in range(len(trial) // 7_680 - 1):
                 x_pix_ppg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:5, 1:7].to_numpy():
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
             for k in range(24): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
 print(len(x_ecg))
+print(len(y))
+print(y[0])
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
