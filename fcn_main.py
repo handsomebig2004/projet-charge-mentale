@@ -7,6 +7,20 @@ import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
 
+
+class FcnDataset(torch.utils.data.Dataset):
+    def __init__(self, data, labels):
+        self.data = data
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        sample = self.data[idx]
+        label = self.labels[idx]
+        return sample, label
+
 x_ecg = []
 x_gsr = []
 x_inf_ppg = []
@@ -52,24 +66,12 @@ x_gsr_norm = torch.nn.functional.normalize(torch.tensor(x_gsr))
 x_inf_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_inf_ppg))
 
 (
-#x_ecg_res_norm_train,
-#x_ecg_res_norm_test,
-#x_gsr_res_norm_train,
-#x_gsr_res_norm_test,
-#x_inf_ppg_res_norm_train,
-#x_inf_ppg_res_norm_test,
 x_ecg_norm_train,
 x_ecg_norm_test,
 x_gsr_norm_train,
 x_gsr_norm_test,
 x_inf_ppg_norm_train,
 x_inf_ppg_norm_test,
-#x_ecg_res_train,
-#x_ecg_res_test,
-#x_gsr_res_train,
-#x_gsr_res_test,
-#x_inf_ppg_res_train,
-#x_inf_ppg_res_test,
 x_ecg_train,
 x_ecg_test,
 x_gsr_train,
@@ -78,15 +80,9 @@ x_inf_ppg_train,
 x_inf_ppg_test,
 y_train,
 y_test) = train_test_split(
-    #x_ecg_res_norm,
-    #x_gsr_res_norm,
-    #x_inf_ppg_res_norm,
     x_ecg_norm,
     x_gsr_norm,
     x_inf_ppg_norm,
-    #x_ecg_res,
-    #x_gsr_res,
-    #x_inf_ppg_res,
     x_ecg, 
     x_gsr, 
     x_inf_ppg,
@@ -95,45 +91,24 @@ y_test) = train_test_split(
     random_state=42
 )
 
-# resampled data loaders
-#x_ecg_res_train_loader = torch.utils.data.DataLoader(torch.tensor(x_ecg_res_train), shuffle=True, batch_size=12)
-#x_ecg_res_test_loader = torch.utils.data.DataLoader(torch.tensor(x_ecg_res_test), shuffle=True, batch_size=12)
-#x_gsr_res_train_loader = torch.utils.data.DataLoader(torch.tensor(x_gsr_res_train), shuffle=True, batch_size=12)
-#x_gsr_res_test_loader = torch.utils.data.DataLoader(torch.tensor(x_gsr_res_test), shuffle=True, batch_size=12)
-#x_inf_res_ppg_train_loader = torch.utils.data.DataLoader(torch.tensor(x_inf_ppg_res_train), shuffle=True, batch_size=12)
-#x_inf_res_ppg_test_loader = torch.utils.data.DataLoader(torch.tensor(x_inf_ppg_res_test), shuffle=True, batch_size=12)
+x_ecg_train = torch.tensor(x_ecg_train)
+x_ecg_test = torch.tensor(x_ecg_test)
+x_gsr_train = torch.tensor(x_gsr_train)
+x_gsr_test = torch.tensor(x_gsr_test)
+x_inf_ppg_train = torch.tensor(x_inf_ppg_train)
+x_inf_ppg_test = torch.tensor(x_inf_ppg_test)
+y_train = torch.tensor(y_train)
+y_test = torch.tensor(y_test)
 
-# not resampled data loaders
-x_ecg_train_loader = torch.utils.data.DataLoader(torch.tensor(x_ecg_train), shuffle=True, batch_size=12)
-x_ecg_test_loader = torch.utils.data.DataLoader(torch.tensor(x_ecg_test), shuffle=True, batch_size=12)
-x_gsr_train_loader = torch.utils.data.DataLoader(torch.tensor(x_gsr_train), shuffle=True, batch_size=12)
-x_gsr_test_loader = torch.utils.data.DataLoader(torch.tensor(x_gsr_test), shuffle=True, batch_size=12)
-x_inf_ppg_train_loader = torch.utils.data.DataLoader(torch.tensor(x_inf_ppg_train), shuffle=True, batch_size=12)
-x_inf_ppg_test_loader = torch.utils.data.DataLoader(torch.tensor(x_inf_ppg_test), shuffle=True, batch_size=12)
+train_dataset = FcnDataset(list(zip(x_ecg_train, x_gsr_train, x_inf_ppg_train)), y_train)
+test_dataset = FcnDataset(list(zip(x_ecg_test, x_gsr_test, x_inf_ppg_test)), y_test)
 
-# resampled normalized data loaders
-#x_ecg_res_train_loader = torch.utils.data.DataLoader(x_ecg_res_norm_train, shuffle=True, batch_size=12)
-#x_ecg_res_test_loader = torch.utils.data.DataLoader(x_ecg_res_norm_test, shuffle=True, batch_size=12)
-#x_gsr_res_train_loader = torch.utils.data.DataLoader((x_gsr_res_norm_train), shuffle=True, batch_size=12)
-#x_gsr_res_test_loader = torch.utils.data.DataLoader((x_gsr_res_norm_test), shuffle=True, batch_size=12)
-#x_inf_res_ppg_train_loader = torch.utils.data.DataLoader((x_inf_ppg_res_norm_train), shuffle=True, batch_size=12)
-#x_inf_res_ppg_test_loader = torch.utils.data.DataLoader((x_inf_ppg_res_norm_test), shuffle=True, batch_size=12)
-
-# not resampled normalized data loaders
-x_ecg_train_norm_loader = torch.utils.data.DataLoader((x_ecg_norm_train), shuffle=True, batch_size=12)
-x_ecg_test_norm_loader = torch.utils.data.DataLoader((x_ecg_norm_test), shuffle=True, batch_size=12)
-x_gsr_train_norm_loader = torch.utils.data.DataLoader((x_gsr_norm_train), shuffle=True, batch_size=12)
-x_gsr_test_norm_loader = torch.utils.data.DataLoader((x_gsr_norm_test), shuffle=True, batch_size=12)
-x_inf_ppg_train_norm_loader = torch.utils.data.DataLoader((x_inf_ppg_norm_train), shuffle=True, batch_size=12)
-x_inf_ppg_test_norm_loader = torch.utils.data.DataLoader((x_inf_ppg_norm_test), shuffle=True, batch_size=12)
-
-# y data loaders
-y_train_loader = torch.utils.data.DataLoader(torch.tensor(y_train), shuffle=True, batch_size=12)
-y_test_loader = torch.utils.data.DataLoader(torch.tensor(y_test), shuffle=True, batch_size=12)
+# not normalized data loaders
+train_data_loader = torch.utils.data.DataLoader(dataset=train_dataset, shuffle=True, batch_size=12)
+test_data_loader = torch.utils.data.DataLoader(dataset=test_dataset, shuffle=True, batch_size=12)
 
 
 #grouping inputs and input lengths
-inputs= [x_ecg_train_loader, x_gsr_train_loader, x_inf_ppg_train_loader]
 input_lengths = [
     max(len(s) for s in x_ecg_train),
     max(len(s) for s in x_gsr_train),
@@ -148,5 +123,5 @@ mae_loss = torch.nn.L1Loss()
 optim_adam = torch.optim.Adam(params= fcn_net.parameters())
 
 #train(fcn_net, [x_ecg_train_norm_loader, x_gsr_train_norm_loader, x_inf_ppg_train_norm_loader],  [x_ecg_test_norm_loader, x_gsr_test_norm_loader, x_inf_ppg_test_norm_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=20)
-train(fcn_net, [x_ecg_train_loader, x_gsr_train_loader, x_inf_ppg_train_loader],  [x_ecg_test_loader, x_gsr_test_loader, x_inf_ppg_test_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=20)
+train(fcn_net, train_data_loader, test_data_loader, loss_func, optim_adam, n_epochs=20)
 
