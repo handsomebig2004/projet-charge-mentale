@@ -26,7 +26,7 @@ class FCNModel(nn.Module):
         self.num_signals=num_signals
 
         # separates all signals in separate branches 
-        self.branches = nn.ModuleList([FCNBranch(kernel_size) for i in range(num_signals)])
+        self.branches = nn.ModuleList([FCNBranch(kernel_size) for _ in range(num_signals)])
 
         #regression with a fully connected layer
         self.fc = nn.Linear(in_features=64*num_signals, out_features=6)
@@ -119,8 +119,10 @@ def epoch_valid(_net, valid_loader, loss_func):
     ----------
     _net : FCNModel()
         the fcn model to test
-    valid_loader : list[torch.utils.data.DataLoader()]
-        input dataloader
+    valid_loader_l : list[torch.utils.data.DataLoader()]
+        A list of validation input dataloaders of length the number of signals
+    y_valid_loader : torch.utils.data.DataLoader()
+        A validation dataloader containing float32 
     loss_func : func
         The loss function to be used
 
@@ -142,9 +144,9 @@ def epoch_valid(_net, valid_loader, loss_func):
             if tot_loss == 0:
                 print(preds[:5])
                 print(y[:5])
-                plt.plot(range(len(preds)), preds)
-                plt.plot(range(len(y)), y)
-                plt.show()
+                # plt.plot(range(len(preds)), preds)
+                # plt.plot(range(len(y)), y)
+                # plt.show()
 
             loss = loss_func(preds.squeeze(), y.float())
 
@@ -162,10 +164,14 @@ def train(_net, train_loader, valid_loader, loss_func, optim, n_epochs):
     ----------
     _net : FCNModel()
         the fcn model to train
-    train_loader : list[torch.utils.data.DataLoader()]
-        input dataloader
-    valid_loader : torch.utils.data.DataLoader()
-        validation dataloader
+    train_loader_l : list[torch.utils.data.DataLoader()]
+        A list of training input dataloaders of length the number of signals
+    valid_loader_l : list[torch.utils.data.DataLoader()]
+        A list of validation input dataloaders of length the number of signals
+    y_train_loader : torch.utils.data.DataLoader()
+        A training output dataloader containing float32 
+    y_valid_loader : torch.utils.data.DataLoader()
+        A validation dataloader containing float32 
     loss_func : func
         The loss function to be used
     optim : torch.optim

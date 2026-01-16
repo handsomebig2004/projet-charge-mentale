@@ -133,5 +133,10 @@ mae_loss = torch.nn.L1Loss()
 optim_adam = torch.optim.Adam(params= fcn_net.parameters())
 
 #train(fcn_net, [x_ecg_train_norm_loader, x_gsr_train_norm_loader, x_inf_ppg_train_norm_loader],  [x_ecg_test_norm_loader, x_gsr_test_norm_loader, x_inf_ppg_test_norm_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=20)
-train(fcn_net, train_data_loader, test_data_loader, loss_func, optim_adam, n_epochs=20)
+train_loss_list, valid_loss_list=train(fcn_net, train_data_loader, test_data_loader, loss_func, optim_adam, n_epochs=100)
+plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
+
+plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
+plt.legend()
+plt.show()
 
