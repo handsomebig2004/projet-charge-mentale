@@ -119,10 +119,8 @@ def epoch_valid(_net, valid_loader, loss_func):
     ----------
     _net : FCNModel()
         the fcn model to test
-    valid_loader_l : list[torch.utils.data.DataLoader()]
-        A list of validation input dataloaders of length the number of signals
-    y_valid_loader : torch.utils.data.DataLoader()
-        A validation dataloader containing float32 
+    valid_loader : list[torch.utils.data.DataLoader()]
+        input dataloader
     loss_func : func
         The loss function to be used
 
@@ -164,14 +162,10 @@ def train(_net, train_loader, valid_loader, loss_func, optim, n_epochs):
     ----------
     _net : FCNModel()
         the fcn model to train
-    train_loader_l : list[torch.utils.data.DataLoader()]
-        A list of training input dataloaders of length the number of signals
-    valid_loader_l : list[torch.utils.data.DataLoader()]
-        A list of validation input dataloaders of length the number of signals
-    y_train_loader : torch.utils.data.DataLoader()
-        A training output dataloader containing float32 
-    y_valid_loader : torch.utils.data.DataLoader()
-        A validation dataloader containing float32 
+    train_loader : list[torch.utils.data.DataLoader()]
+        input dataloader
+    valid_loader : torch.utils.data.DataLoader()
+        validation dataloader
     loss_func : func
         The loss function to be used
     optim : torch.optim
