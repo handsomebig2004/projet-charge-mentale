@@ -26,10 +26,10 @@ class FCNModel(nn.Module):
         self.num_signals=num_signals
 
         # separates all signals in separate branches 
-        self.branches = nn.ModuleList([FCNBranch(kernel_size) for i in range(num_signals)])
+        self.branches = nn.ModuleList([FCNBranch(kernel_size) for _ in range(num_signals)])
 
         #regression with a fully connected layer
-        self.fc = nn.Linear(in_features=64*num_signals, out_features=1)
+        self.fc = nn.Linear(in_features=64*num_signals, out_features=6)
 
     def forward(self, x_list):
         # x_list : liste de tenseurs [batch, 1, L] pour chaque signal
@@ -64,7 +64,7 @@ def _prepare_label(y):
 
 
 
-def epoch_train(_net, train_loader_l, y_train_loader, loss_func, optim):
+def epoch_train(_net, train_loader, loss_func, optim):
     """An epoch of training for this model
 
     Parameters
@@ -88,10 +88,10 @@ def epoch_train(_net, train_loader_l, y_train_loader, loss_func, optim):
     _net.train()
     tot_loss, n_samples=0,0
 
-    for *x_batches, y_batch in zip(*train_loader_l, y_train_loader):
+    for x_batche_l, y_batch in train_loader:
         optim.zero_grad()
         #preparing all inputs
-        x_list = [_prepare_tensor(xb) for xb in x_batches]
+        x_list = [_prepare_tensor(xb) for xb in x_batche_l]
         y = _prepare_label(y_batch)
 
         #prediction and step
@@ -112,7 +112,7 @@ def epoch_train(_net, train_loader_l, y_train_loader, loss_func, optim):
     return avg_loss
 
 
-def epoch_valid(_net, valid_loader_l, y_valid_loader, loss_func):
+def epoch_valid(_net, valid_loader, loss_func):
     """Tests network performance with a validation dataset 
 
     Parameters
@@ -134,19 +134,19 @@ def epoch_valid(_net, valid_loader_l, y_valid_loader, loss_func):
     _net.eval()
     tot_loss, n_samples=0,0
     with torch.no_grad():
-        for *x_batches, y_batch in zip(*valid_loader_l, y_valid_loader):
+        for x_batche_l, y_batch in valid_loader:
             #preparing all inputs
 
-            x_list = [_prepare_tensor(xb) for xb in x_batches]
+            x_list = [_prepare_tensor(xb) for xb in x_batche_l]
             y = _prepare_label(y_batch)
 
             preds = _net(x_list)
             if tot_loss == 0:
                 print(preds[:5])
                 print(y[:5])
-                plt.plot(range(len(preds)), preds)
-                plt.plot(range(len(y)), y)
-                plt.show()
+                # plt.plot(range(len(preds)), preds)
+                # plt.plot(range(len(y)), y)
+                # plt.show()
 
             loss = loss_func(preds.squeeze(), y.float())
 
@@ -157,7 +157,7 @@ def epoch_valid(_net, valid_loader_l, y_valid_loader, loss_func):
     avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
     return avg_loss
 
-def train(_net, train_loader_l, valid_loader_l, y_train_loader, y_valid_loader, loss_func, optim, n_epochs):
+def train(_net, train_loader, valid_loader, loss_func, optim, n_epochs):
     """A training loop for the provided network for n_epochs
 
     Parameters
@@ -190,12 +190,12 @@ def train(_net, train_loader_l, valid_loader_l, y_train_loader, y_valid_loader, 
         t_start=t.time()
 
         #training loop
-        train_loss=epoch_train(_net, train_loader_l, y_train_loader, loss_func, optim)
+        train_loss=epoch_train(_net, train_loader, loss_func, optim)
         train_loss_list.append(train_loss)
 
         with torch.no_grad():
             #valid ation
-            valid_loss = epoch_valid(_net, valid_loader_l, y_valid_loader, loss_func)
+            valid_loss = epoch_valid(_net, valid_loader, loss_func)
             valid_loss_list.append(valid_loss)
         t_end=t.time()
         print(f'Epoch {epoch}:  train loss {train_loss}, valid loss {valid_loss}')
