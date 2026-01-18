@@ -45,7 +45,7 @@ class LSTM(nn.Module):
         self.swish = nn.SiLU()
         self.relu = nn.ReLU()
         self.linear1 = nn.Linear(384, 1)
-        self.dropout = nn.Dropout(0.5)
+        self.dropout = nn.Dropout(0.3)
 
     def forward(self, x):
         
@@ -56,8 +56,13 @@ class LSTM(nn.Module):
         x, _ = self.lstm(x)       # (batch, 120, 384)
 
         x = x[:, -1, :]           # (batch, 384) -> dernier timestep
-        x = self.linear1(x)       # (batch, 1)
+
+        x = self.swish(x)
+        x = self.relu(x)
+
         x = self.dropout(x)
+        x = self.linear1(x)       # (batch, 1)
+
 
         return x
 
