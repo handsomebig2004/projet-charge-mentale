@@ -53,9 +53,9 @@ class MultiSignalRNN(nn.Module):
 
         output, hidden = self.rnn(x)
 
-        last_output = output[:, -1, :]  # [batch, hidden_size]
+        seq_repr = output.mean(dim=1)  # [batch, hidden_size]
 
-        y_hat = self.fc(last_output)    # [batch, 1]
+        y_hat = self.fc(seq_repr)    # [batch, 1]
         return y_hat
 
 
@@ -73,6 +73,7 @@ def epoch_train_rnn(net, train_loader_l, y_train_loader, loss_func, optim):
 
         loss = loss_func(preds, y.float())
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(net.parameters(), 1.0)
         optim.step()
 
         batch_size = y.size(0)
