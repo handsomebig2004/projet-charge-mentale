@@ -119,6 +119,9 @@ def valid_epoch(test_loader, loss_func, model):
     avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
     return avg_loss
 
+loss_list = []
+valid_loss_list = []
+
 for epoch in range(n_epochs):
     for x_batch, y_batch in train_dataloader:
         model.train()
@@ -130,5 +133,12 @@ for epoch in range(n_epochs):
         
     with torch.no_grad():
         valid_loss = valid_epoch(test_dataloader, loss_fn, model)
+        valid_loss_list.append(valid_loss)
     
+    loss_list.append(loss.item())
     print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
+
+plt.plot(list(range(len(loss_list))), loss_list, label='train loss')
+plt.plot(list(range(len(valid_loss_list))), valid_loss_list, label='valid loss')
+plt.legend()
+plt.show()
