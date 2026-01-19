@@ -31,24 +31,23 @@ y = []
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
         
-        # 256 Hz for 30 sec -> 7_680
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 7_680 - 1):
-                x_ecg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
-            for k in range(len(trial) // 7_680 - 1):
-                x_gsr.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 7_680 - 1):
-                x_inf_ppg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-            
         # 100 Hz for 30 sec ->  3_000
-        for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
-            #print(trial.shape)
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
             for k in range(len(trial) // 3_000 - 1):
-                x_pix_ppg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
-            for k in range(9): # duplicate results for the same trial (since we split the in 30s slices)
+                x_ecg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
+            for k in range(len(trial) // 3_000 - 1):
+                x_gsr.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
+            for k in range(len(trial) // 3_000 - 1):
+                x_inf_ppg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
+            
+        # 256 Hz for 30 sec -> 7_680
+        for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
+            for k in range(len(trial) // 7_680 - 1):
+                x_pix_ppg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
+            for k in range(24): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
 print(len(x_ecg))

@@ -35,8 +35,9 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
             for k in range(24): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
+print(len(x_ecg),len(x_ecg[0]),len(x_pix_ppg),len(x_pix_ppg[0]),len(y))
 
-class LSTM(nn.Module):
+"""class LSTM(nn.Module):
 
     def __init__(self, input_size, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -141,4 +142,4 @@ for epoch in range(n_epochs):
 plt.plot(list(range(len(loss_list))), loss_list, label='train loss')
 plt.plot(list(range(len(valid_loss_list))), valid_loss_list, label='valid loss')
 plt.legend()
-plt.show()
+plt.show()"""
