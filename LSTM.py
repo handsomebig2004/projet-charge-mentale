@@ -92,6 +92,11 @@ model = LSTM(input_size=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()
 
+def valid_epoch(x_batch, y_batch, loss_func, model):
+    preds = model(x_batch)
+    loss = loss_func(preds, y_batch)
+    return loss
+
 for epoch in range(n_epochs):
     for x_batch, y_batch in train_dataloader:
         model.train()
@@ -100,4 +105,5 @@ for epoch in range(n_epochs):
         loss = loss_fn(outputs.squeeze(), y_batch)
         loss.backward()
         optimizer.step()
-    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}")
+        valid_loss = valid_epoch(test_dataloader, loss_fn, model)
+    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
