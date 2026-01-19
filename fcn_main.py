@@ -31,7 +31,7 @@ y = []
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
         
-        frag_length = 10
+        frag_length = 10  # length in seconds for the fragmmentation
         
         # 256 Hz for 30 sec -> 7_680
         n_input_256 = 256 * frag_length
