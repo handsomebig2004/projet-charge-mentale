@@ -16,25 +16,33 @@ y = []
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
         
-        # 100 Hz for 30 sec ->  3_000
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_ecg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_gsr.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_inf_ppg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-            
+        frag_length = 10  # length in seconds for the fragmmentation
+        
         # 256 Hz for 30 sec -> 7_680
+        n_input_256 = 256 * frag_length
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
+            for k in range(len(trial) // n_input_256 - 1):
+                x_ecg.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
+            for k in range(len(trial) // n_input_256 - 1):
+                x_gsr.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
+            for k in range(len(trial) // n_input_256 - 1):
+                x_inf_ppg.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
+            
+        # 100 Hz for 30 sec ->  3_000
+        n_input_100 = 100 * frag_length
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
-            for k in range(len(trial) // 7_680 - 1):
-                x_pix_ppg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
-            for k in range(24): # duplicate results for the same trial (since we split the in 30s slices)
-                y.append(np.float32(trial))
+            #print(trial.shape)
+            for k in range(len(trial) // n_input_100 - 1):
+                x_pix_ppg.append(list(trial[k*n_input_100:(k+1)*n_input_100].astype(np.float32)))
 
+
+for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
+    if folder_name[0][-1] != '/':
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy().transpose():
+            for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
+                y.append(np.float32(trial))
 
 class LSTM(nn.Module):
 
@@ -71,12 +79,12 @@ resample_size = 120
 x_ecg_res = [resample(x, resample_size) for x in x_ecg]
 x_gsr_res = [resample(x, resample_size) for x in x_gsr]
 x_inf_ppg_res = [resample(x, resample_size) for x in x_inf_ppg]
-#x_pix_ppg_res = resample(x_pix_ppg, resample_size) 
+x_pix_ppg_res = [resample(x, resample_size) for x in x_pix_ppg]
 
 #concaténer mes signaux
 x_all = []
 for i in range(len(x_ecg_res)):
-    signals = np.stack([x_ecg_res[i], x_gsr_res[i], x_inf_ppg_res[i]], axis=0)
+    signals = np.stack([x_ecg_res[i], x_gsr_res[i], x_inf_ppg_res[i], x_pix_ppg_res[i]], axis=0)
     x_all.append(signals)
 
 
@@ -88,7 +96,7 @@ train_dataloader = torch.utils.data.DataLoader(list(zip(x_all_tensor[:train_size
 test_dataloader = torch.utils.data.DataLoader(list(zip(x_all_tensor[train_size:], y_tensor[train_size:])), batch_size=32, shuffle=False)
 
 n_epochs = 20
-model = LSTM(input_size=3)
+model = LSTM(input_size=4)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()
 
