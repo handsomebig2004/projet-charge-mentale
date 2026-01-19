@@ -92,10 +92,32 @@ model = LSTM(input_size=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()
 
-def valid_epoch(x_batch, y_batch, loss_func, model):
-    preds = model(x_batch)
-    loss = loss_func(preds, y_batch)
-    return loss
+def valid_epoch(test_loader, loss_func, model):
+    
+    model.eval()
+    tot_loss, n_samples=0,0
+    with torch.no_grad():
+        for x_batche_l, y_batch in test_loader:
+            #preparing all inputs
+
+            preds = model(x_batche_l)
+            
+            if tot_loss == 0:
+                pass
+                #print(preds[:5])
+                #print(y[:5])
+                # plt.plot(range(len(preds)), preds)
+                # plt.plot(range(len(y)), y)
+                # plt.show()
+
+            loss = loss_func(preds.squeeze(), y_batch)
+            
+            n_samples += y_batch.size(0)
+            tot_loss += loss.item() * y_batch.size(0)
+
+    model.train()
+    avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
+    return avg_loss
 
 for epoch in range(n_epochs):
     for x_batch, y_batch in train_dataloader:
@@ -105,5 +127,8 @@ for epoch in range(n_epochs):
         loss = loss_fn(outputs.squeeze(), y_batch)
         loss.backward()
         optimizer.step()
+        
+    with torch.no_grad():
         valid_loss = valid_epoch(test_dataloader, loss_fn, model)
+    
     print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
