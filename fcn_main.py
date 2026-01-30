@@ -61,6 +61,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
+len(x_ecg) // NUM_PATIENTS
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
@@ -86,9 +87,9 @@ indices = list(range(NUM_PATIENTS))
 train_indices, test_indices = train_test_split(indices, test_size=0.2)
 train_indices, valid_indices = train_test_split(train_indices, test_size=0.2)
 
-train_indices = [x + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in train_indices]
-valid_indices = [x + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in valid_indices]
-test_indices = [x + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in test_indices]
+train_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in train_indices]
+valid_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in valid_indices]
+test_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in test_indices]
 
 x_train_list, x_valid_list, x_test_list, y_train, y_valid, y_test = split_data([x_inf_ppg, x_ecg, x_gsr, x_pix_ppg], y, train_indices, valid_indices, test_indices)
 
