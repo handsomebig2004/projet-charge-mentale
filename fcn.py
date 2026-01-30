@@ -30,7 +30,7 @@ class FCNModel(nn.Module):
         self.branches = nn.ModuleList([FCNBranch(kernel_size) for _ in range(num_signals)])
 
         #regression with a fully connected layer
-        self.fc = nn.Linear(in_features=64*num_signals, out_features=6)
+        self.fc = nn.Linear(in_features=64*num_signals, out_features=1)
 
     def forward(self, x_list):
         # x_list : liste de tenseurs [batch, 1, L] pour chaque signal
