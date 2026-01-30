@@ -8,6 +8,8 @@ import torch
 from sklearn.model_selection import train_test_split
 import rnn
 
+NUM_PATIENTS = 22
+
 
 class FcnDataset(torch.utils.data.Dataset):
     def __init__(self, data, labels):
@@ -51,10 +53,6 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
             for k in range(9): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
-print(len(x_ecg))
-print(len(x_pix_ppg))
-print(len(y))
-print(y[0])
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
@@ -68,62 +66,47 @@ resample_size = 120
 x_inf_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_inf_ppg))
 x_ecg_norm = torch.nn.functional.normalize(torch.tensor(x_ecg))
 x_gsr_norm = torch.nn.functional.normalize(torch.tensor(x_gsr))
-x_pix_ppg = torch.nn.functional.normalize(torch.tensor(x_pix_ppg))
+x_pix_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_pix_ppg))
 
-(
-x_ecg_norm_train,
-x_ecg_norm_test,
-x_gsr_norm_train,
-x_gsr_norm_test,
-x_inf_ppg_norm_train,
-x_inf_ppg_norm_test,
-x_ecg_train,
-x_ecg_test,
-x_gsr_train,
-x_gsr_test,
-x_inf_ppg_train,
-x_inf_ppg_test,
-x_pix_ppg_train,
-x_pix_ppg_test,
-y_train,
-y_test) = train_test_split(
-    x_ecg_norm,
-    x_gsr_norm,
-    x_inf_ppg_norm,
-    x_ecg, 
-    x_gsr, 
-    x_inf_ppg,
-    x_pix_ppg,
-    y,
-    train_size=0.8,
-    random_state=42
-)
+def split_data(x_list, y, train_indices, valid_indices, test_indices):
+    train_list = []
+    valid_list = []
+    test_list = []
+    for x in x_list:
+        train_list.append(torch.tensor([x[i] for i in train_indices]))
+        valid_list.append(torch.tensor([x[i] for i in valid_indices]))
+        test_list.append(torch.tensor([x[i] for i in test_indices]))
+    y_train, y_valid, y_test = [y[i] for i in train_indices], [y[i] for i in valid_indices], [y[i] for i in test_indices]
+    return train_list, valid_list, test_list, y_train, y_valid, y_test
 
-x_ecg_train = torch.tensor(x_ecg_train)
-x_ecg_test = torch.tensor(x_ecg_test)
-x_gsr_train = torch.tensor(x_gsr_train)
-x_gsr_test = torch.tensor(x_gsr_test)
-x_inf_ppg_train = torch.tensor(x_inf_ppg_train)
-x_inf_ppg_test = torch.tensor(x_inf_ppg_test)
-x_pix_ppg_train = torch.tensor(x_inf_ppg_train)
-x_pix_ppg_test = torch.tensor(x_inf_ppg_test)
-y_train = torch.tensor(y_train)
-y_test = torch.tensor(y_test)
+indices = list(range(NUM_PATIENTS))
+indices = [x for i in range(len(x_ecg) // NUM_PATIENTS) for x in indices]
+train_indices, test_indices = train_test_split(indices, test_size=0.2)
+train_indices, valid_indices = train_test_split(train_indices, test_size=0.2)
 
-train_dataset = FcnDataset(list(zip(x_ecg_train, x_gsr_train, x_inf_ppg_train, x_pix_ppg_train)), y_train)
-test_dataset = FcnDataset(list(zip(x_ecg_test, x_gsr_test, x_inf_ppg_test, x_pix_ppg_test)), y_test)
+x_train_list, x_valid_list, x_test_list, y_train, y_valid, y_test = split_data([x_inf_ppg, x_ecg, x_gsr, x_pix_ppg], y, train_indices, valid_indices, test_indices)
+
+train_dataset = FcnDataset(list(zip(x_train_list[0], 
+                               x_train_list[1], 
+                               x_train_list[2], 
+                               x_train_list[3])), y_train)
+valid_dataset = FcnDataset(list(zip(x_valid_list[0],
+                               x_valid_list[1],
+                               x_valid_list[2],
+                               x_valid_list[3])), y_valid)
+test_dataset = FcnDataset(list(zip(x_test_list[0],
+                              x_test_list[1],
+                              x_test_list[2],
+                              x_test_list[3],)), y_test)
 
 # not normalized data loaders
 train_data_loader = torch.utils.data.DataLoader(dataset=train_dataset, shuffle=True, batch_size=12)
+valid_data_loader = torch.utils.data.DataLoader(dataset=valid_dataset, shuffle=True, batch_size=12)
 test_data_loader = torch.utils.data.DataLoader(dataset=test_dataset, shuffle=True, batch_size=12)
 
 
 #grouping inputs and input lengths
-input_lengths = [
-    max(len(s) for s in x_ecg_train),
-    max(len(s) for s in x_gsr_train),
-    max(len(s) for s in x_inf_ppg_train),
-]
+input_lengths = [len(x) for x in x_train_list]
 
 fcn_net=FCNModel(num_signals=3, kernel_size=7, input_lengths=input_lengths)
 rnn_net = rnn.MultiSignalRNN(num_signals=3)
@@ -133,7 +116,7 @@ mae_loss = torch.nn.L1Loss()
 optim_adam = torch.optim.Adam(params= fcn_net.parameters())
 
 #train(fcn_net, [x_ecg_train_norm_loader, x_gsr_train_norm_loader, x_inf_ppg_train_norm_loader],  [x_ecg_test_norm_loader, x_gsr_test_norm_loader, x_inf_ppg_test_norm_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=20)
-train_loss_list, valid_loss_list=train(fcn_net, train_data_loader, test_data_loader, loss_func, optim_adam, n_epochs=100)
+train_loss_list, valid_loss_list=train(fcn_net, train_data_loader, valid_data_loader, loss_func, optim_adam, n_epochs=100)
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
 
 plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
