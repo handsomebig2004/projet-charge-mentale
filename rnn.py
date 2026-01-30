@@ -9,8 +9,7 @@ def _prepare(y):
     if y.dim() == 0:
         y = y.unsqueeze(0)
     return y.float()
-import torch
-import torch.nn as nn
+
 
 class MultiSignalRNN(nn.Module):
     def __init__(self, num_signals, hidden_size=128, num_layers=1, dropout=0.0):
@@ -33,8 +32,7 @@ class MultiSignalRNN(nn.Module):
             hidden_size=hidden_size,
             num_layers=num_layers,
             batch_first=True,
-            dropout=dropout if num_layers > 1 else 0.0
-        )
+            dropout=dropout if num_layers > 1 else 0.0)
 
         self.fc = nn.Linear(hidden_size, 1)
 
@@ -85,7 +83,7 @@ def epoch_train_rnn(net, train_loader_l, y_train_loader, loss_func, optim):
 def epoch_valid_rnn(net, valid_loader_l, y_valid_loader, loss_func):
     net.eval()
     tot_loss, n_samples = 0.0, 0
-    import torch
+
 
     with torch.no_grad():
         for *x_batches, y_batch in zip(*valid_loader_l, y_valid_loader):
