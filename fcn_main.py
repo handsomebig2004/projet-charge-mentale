@@ -35,7 +35,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         
         frag_length = 30
         
-        # 256 Hz for 30 sec -> 7_680
+        # 256 Hz
         n_input_256 = 256 * frag_length
         for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
             for k in range(len(trial) // n_input_256 - 1):
@@ -47,7 +47,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
             for k in range(len(trial) // n_input_256 - 1):
                 x_inf_ppg.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
             
-        # 100 Hz for 30 sec ->  3_000
+        # 100 Hz
         n_input_100 = 100 * frag_length
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
             #print(trial.shape)
@@ -64,13 +64,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
 
 # resample data to 4Hz on 30 seconds
 resample_size = 120
-#x_ecg_res = [resample(x, resample_size) for x in x_ecg]
-#x_gsr_res = [resample(x, resample_size) for x in x_gsr]
-#x_inf_ppg_res = [resample(x, resample_size) for x in x_inf_ppg]
-#x_pix_ppg_res = resample(x_pix_ppg, resample_size) TODO make this work (not all things of the same size)
 
-#x_ecg_res_norm = torch.nn.functional.normalize(torch.tensor(x_ecg_res))
-#x_gsr_res_norm = torch.nn.functional.normalize(torch.tensor(x_gsr_res))
 x_inf_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_inf_ppg))
 x_ecg_norm = torch.nn.functional.normalize(torch.tensor(x_ecg))
 x_gsr_norm = torch.nn.functional.normalize(torch.tensor(x_gsr))
@@ -88,11 +82,19 @@ def split_data(x_list, y, train_indices, valid_indices, test_indices):
     return train_list, valid_list, test_list, y_train, y_valid, y_test
 
 indices = list(range(NUM_PATIENTS))
-indices = [x for i in range(len(x_ecg) // NUM_PATIENTS) for x in indices]
+
 train_indices, test_indices = train_test_split(indices, test_size=0.2)
 train_indices, valid_indices = train_test_split(train_indices, test_size=0.2)
 
+train_indices = [x for i in range(len(x_ecg) // NUM_PATIENTS) for x in train_indices]
+valid_indices = [x for i in range(len(x_ecg) // NUM_PATIENTS) for x in valid_indices]
+test_indices = [x for i in range(len(x_ecg) // NUM_PATIENTS) for x in test_indices]
+
 x_train_list, x_valid_list, x_test_list, y_train, y_valid, y_test = split_data([x_inf_ppg, x_ecg, x_gsr, x_pix_ppg], y, train_indices, valid_indices, test_indices)
+
+print(len(x_train_list[0]))
+print(len(x_valid_list[0]))
+print(len(x_test_list[0]))
 
 train_dataset = FcnDataset(list(zip(x_train_list[0], 
                                x_train_list[1], 
@@ -124,7 +126,7 @@ mae_loss = torch.nn.L1Loss()
 optim_adam = torch.optim.Adam(params= fcn_net.parameters())
 
 #train(fcn_net, [x_ecg_train_norm_loader, x_gsr_train_norm_loader, x_inf_ppg_train_norm_loader],  [x_ecg_test_norm_loader, x_gsr_test_norm_loader, x_inf_ppg_test_norm_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=20)
-train_loss_list, valid_loss_list=train(fcn_net, train_data_loader, valid_data_loader, loss_func, optim_adam, n_epochs=100)
+train_loss_list, valid_loss_list=train(fcn_net, train_data_loader, valid_data_loader, loss_func, optim_adam, n_epochs=15)
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
 
 print(f'test loss (mse): {test_model(fcn_net, test_data_loader, loss_func=loss_func)}')
