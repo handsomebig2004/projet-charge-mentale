@@ -1,6 +1,6 @@
 from scipy.signal import resample
 import pandas as pd
-from fcn import FCNBranch, FCNModel, train
+from fcn import FCNBranch, FCNModel, train, test_model
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -118,6 +118,9 @@ optim_adam = torch.optim.Adam(params= fcn_net.parameters())
 #train(fcn_net, [x_ecg_train_norm_loader, x_gsr_train_norm_loader, x_inf_ppg_train_norm_loader],  [x_ecg_test_norm_loader, x_gsr_test_norm_loader, x_inf_ppg_test_norm_loader],  y_train_loader, y_test_loader, loss_func, optim_adam, n_epochs=20)
 train_loss_list, valid_loss_list=train(fcn_net, train_data_loader, valid_data_loader, loss_func, optim_adam, n_epochs=100)
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
+
+print(f'test loss (mse): {test_model(fcn_net, test_data_loader, loss_func=loss_func)}')
+print(f'test loss (mae): {test_model(fcn_net, test_data_loader, loss_func=mae_loss)}')
 
 plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
 plt.legend()

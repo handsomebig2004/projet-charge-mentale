@@ -196,3 +196,31 @@ def train(_net, train_loader, valid_loader, loss_func, optim, n_epochs):
         print(f'Epoch {epoch}:  train loss {train_loss}, valid loss {valid_loss}')
         print(f'Temps écoulé: {t_end-t_start}')
     return train_loss_list, valid_loss_list
+
+
+def test_model(_net, test_loader, loss_func):
+    _net.eval()
+    tot_loss, n_samples=0,0
+    with torch.no_grad():
+        for x_batche_l, y_batch in test_loader:
+            #preparing all inputs
+
+            x_list = [_prepare_tensor(xb) for xb in x_batche_l]
+            y = _prepare_label(y_batch)
+
+            preds = _net(x_list)
+            if tot_loss == 0:
+                print(preds[:5])
+                print(y[:5])
+                # plt.plot(range(len(preds)), preds)
+                # plt.plot(range(len(y)), y)
+                # plt.show()
+
+            loss = loss_func(preds.squeeze(), y.float())
+
+            n_samples += y.size(0)
+            tot_loss += loss.item() * y.size(0)
+
+    _net.train()
+    avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
+    return avg_loss
