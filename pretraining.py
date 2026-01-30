@@ -1,16 +1,11 @@
+import os
 import numpy as np 
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
 from torchvision import models
 from scipy.signal import resample
-from sklearn.model_selection import train_test_split
-import os
 from scipy.signal import spectrogram
-
 
 x_ecg = []
 x_gsr = []
@@ -21,23 +16,31 @@ y = []
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
         
-        # 100 Hz for 30 sec ->  3_000
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_ecg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_gsr.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_inf_ppg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-            
+        frag_length = 30
+        
         # 256 Hz for 30 sec -> 7_680
+        n_input_256 = 256 * frag_length
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
+            for k in range(len(trial) // n_input_256 - 1):
+                x_ecg.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
+            for k in range(len(trial) // n_input_256 - 1):
+                x_gsr.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
+        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
+            for k in range(len(trial) // n_input_256 - 1):
+                x_inf_ppg.append(list(trial[k*n_input_256:(k+1)*n_input_256].astype(np.float32)))
+            
+        # 100 Hz for 30 sec ->  3_000
+        n_input_100 = 100 * frag_length
         for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
-            for k in range(len(trial) // 7_680 - 1):
-                x_pix_ppg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
-            for k in range(24): # duplicate results for the same trial (since we split the in 30s slices)
+            #print(trial.shape)
+            for k in range(len(trial) // n_input_100 - 1):
+                x_pix_ppg.append(list(trial[k*n_input_100:(k+1)*n_input_100].astype(np.float32)))
+
+for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
+    if folder_name[0][-1] != '/':
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
+            for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
 resample_size = 120
@@ -81,61 +84,68 @@ for i in range (len(x_pix_ppg_res)) :
     x_pix_ppg_res[i] = Sxx
 
 final_signal = np.stack([x_ecg_res, x_gsr_res, x_inf_ppg_res, x_pix_ppg_res], axis=0)   
+final_signal = final_signal.transpose(1,0,2,3) 
 
 print(final_signal.shape)  
 
-#y_tensor = torch.tensor(y).float() 
-#train_size = int(0.8 * len(x_all_tensor))
-#train_dataloader = torch.utils.data.DataLoader(list(zip(x_all_tensor[:train_size], y_tensor[:train_size])), batch_size=32, shuffle=False)
-#test_dataloader = torch.utils.data.DataLoader(list(zip(x_all_tensor[train_size:], y_tensor[train_size:])), batch_size=32, shuffle=False)
+y_tensor = torch.tensor(y).float() 
+train_size = int(0.8 * len(final_signal))
+
+train_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[:train_size], y_tensor[:train_size])), batch_size=32, shuffle=False)
+test_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[train_size:], y_tensor[train_size:])), batch_size=32, shuffle=False)
 
 
+model = models.resnet18(weights='DEFAULT')
+model.conv1 = nn.Conv2d(4,64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
+model.fc = torch.nn.Linear(in_features=2048, out_features=1)
 
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.Conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-        self.Conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+for param in model.parameters():
+    param.requires_grad = False
 
-    def forward(self, x):
-        x=self.Conv1(x)
-        x=torch.nn.functional.batch_norm(x, self.Conv1.weight, self.Conv1.bias)
-        x=torch.nn.functional.relu(x)
-        x=self.Conv2(x)
-        x=torch.nn.functional.batch_norm(x, self.Conv2.weight, self.Conv2.bias)
-        x=torch.nn.functional.relu(x)
-        return x
+for param in model.fc.parameters():
+	param.requires_grad = True
 
+criterion = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+n_epochs = 50
 
-class ResNetEncoder(nn.Module):
-    def __init__(self, in_channels=4, pretrained=True):
-        super().__init__()
-        
-        resnet = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None)
-        self.first_conv = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3)
-
-
-        # Encoder
-        self.encoder1 = nn.Sequential(self.first_conv, resnet.bn1, resnet.relu)
-        self.pool1 = resnet.maxpool
-        self.encoder2 = resnet.layer1
-        self.encoder3 = resnet.layer2
-        self.encoder4 = resnet.layer3
-
-        # Regressor
-        self.regressor = nn.Sequential(
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
-            nn.Linear(2048, 1)
-        )
+def valid_epoch(test_loader, loss_func, model):
     
-    def forward(self, x):
-        # Encoder
-        x1 = self.encoder1(x)   
-        x2 = self.pool1(x1)
-        x3 = self.encoder2(x2)  
-        x4 = self.encoder3(x3)  
-        
-        out = self.classifier(x4)
+    model.eval()
+    tot_loss, n_samples=0,0
+    with torch.no_grad():
+        for x_batche_l, y_batch in test_loader:
+            #preparing all inputs
 
-        return out
+            preds = model(x_batche_l)
+            
+            if tot_loss == 0:
+                pass
+                #print(preds[:5])
+                #print(y[:5])
+                # plt.plot(range(len(preds)), preds)
+                # plt.plot(range(len(y)), y)
+                # plt.show()
+
+            loss = loss_func(preds.squeeze(), y_batch)
+            
+            n_samples += y_batch.size(0)
+            tot_loss += loss.item() * y_batch.size(0)
+
+    model.train()
+    avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
+    return avg_loss
+
+for epoch in range(n_epochs):
+    for x_batch, y_batch in train_dataloader:
+        model.train()
+        optimizer.zero_grad()
+        outputs = model(x_batch)
+        loss = criterion(outputs.squeeze(), y_batch)
+        loss.backward()
+        optimizer.step()
+        
+    with torch.no_grad():
+        valid_loss = valid_epoch(test_dataloader, criterion, model)
+    
+    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
