@@ -57,7 +57,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
 
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy().transpose():
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
