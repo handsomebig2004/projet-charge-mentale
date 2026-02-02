@@ -21,7 +21,7 @@ class FCNBranch(nn.Module):
         return x
 
 class FCNModel(nn.Module):
-    def __init__(self, num_signals, kernel_size, input_lengths):
+    def __init__(self, num_signals, kernel_size):
         super().__init__()
         self.kernel_size=kernel_size
         self.num_signals=num_signals
