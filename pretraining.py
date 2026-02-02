@@ -94,7 +94,7 @@ train_size = int(0.8 * len(final_signal))
 train_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[:train_size], y_tensor[:train_size])), batch_size=32, shuffle=False)
 test_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[train_size:], y_tensor[train_size:])), batch_size=32, shuffle=False)
 
-
+#model = models.resnet50(weights='DEFAULT')
 model = models.resnet18(weights='DEFAULT')
 model.conv1 = nn.Conv2d(4,64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
 model.fc = torch.nn.Linear(in_features=512, out_features=1)
@@ -107,7 +107,7 @@ for param in model.fc.parameters():
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-n_epochs = 50
+n_epochs = 200
 
 def valid_epoch(test_loader, loss_func, model):
     
