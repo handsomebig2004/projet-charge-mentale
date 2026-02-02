@@ -3,6 +3,8 @@ import os
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
+from scipy.signal import resample
+from scipy.signal import spectrogram
 
 NUM_PATIENTS = 22
 
@@ -18,6 +20,23 @@ class FcnDataset(torch.utils.data.Dataset):
         sample = self.data[idx]
         label = self.labels[idx]
         return sample, label
+
+def split_data(x_list, y, train_indices, valid_indices, test_indices):
+    train_list = []
+    valid_list = []
+    test_list = []
+    for x in x_list:
+        train_list.append(torch.tensor([x[i] for i in train_indices]))
+        valid_list.append(torch.tensor([x[i] for i in valid_indices]))
+        test_list.append(torch.tensor([x[i] for i in test_indices]))
+    y_train, y_valid, y_test = [y[i] for i in train_indices], [y[i] for i in valid_indices], [y[i] for i in test_indices]
+    return train_list, valid_list, test_list, y_train, y_valid, y_test
+
+
+
+############################################
+########## fetch data from files ###########
+############################################
 
 x_ecg = []
 x_gsr = []
@@ -56,25 +75,10 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
-
-# resample data to 4Hz on 30 seconds
-resample_size = 120
-
 x_inf_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_inf_ppg))
 x_ecg_norm = torch.nn.functional.normalize(torch.tensor(x_ecg))
 x_gsr_norm = torch.nn.functional.normalize(torch.tensor(x_gsr))
 x_pix_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_pix_ppg))
-
-def split_data(x_list, y, train_indices, valid_indices, test_indices):
-    train_list = []
-    valid_list = []
-    test_list = []
-    for x in x_list:
-        train_list.append(torch.tensor([x[i] for i in train_indices]))
-        valid_list.append(torch.tensor([x[i] for i in valid_indices]))
-        test_list.append(torch.tensor([x[i] for i in test_indices]))
-    y_train, y_valid, y_test = [y[i] for i in train_indices], [y[i] for i in valid_indices], [y[i] for i in test_indices]
-    return train_list, valid_list, test_list, y_train, y_valid, y_test
 
 indices = list(range(NUM_PATIENTS))
 
@@ -86,7 +90,68 @@ valid_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) 
 test_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in test_indices]
 
 
-# not normalized data loaders
+
+######################################
+########## resampled data ############
+######################################
+
+resample_size = 120
+x_ecg_res = [resample(x, resample_size) for x in x_ecg]
+x_gsr_res = [resample(x, resample_size) for x in x_gsr]
+x_inf_ppg_res = [resample(x, resample_size) for x in x_inf_ppg]
+x_pix_ppg_res = [resample(x, resample_size) for x in x_pix_ppg]
+
+#pour x_ecg_res : 
+for i in range (len(x_ecg_res)) : 
+    fs = 4
+    t = np.linspace(0,30,fs*30)
+    signal = x_ecg_res[i]
+    f,time,Sxx = spectrogram(signal,fs=fs,nperseg=32,noverlap=16)
+    x_ecg_res[i] = Sxx
+
+#pour x_gsr_res : 
+for i in range (len(x_gsr_res)) : 
+    fs = 4
+    t = np.linspace(0,30,fs*30)
+    signal = x_gsr_res[i]
+    f,time,Sxx = spectrogram(signal,fs=fs,nperseg=32,noverlap=16)
+    x_gsr_res[i] = Sxx
+
+#pour x_inf_ppg_res : 
+for i in range (len(x_inf_ppg_res)) : 
+    fs = 4
+    t = np.linspace(0,30,fs*30)
+    signal = x_inf_ppg_res[i]
+    f,time,Sxx = spectrogram(signal,fs=fs,nperseg=32,noverlap=16)
+    x_inf_ppg_res[i] = Sxx
+
+#pour x_pix_ppg_res : 
+for i in range (len(x_pix_ppg_res)) : 
+    fs = 4
+    t = np.linspace(0,30,fs*30)
+    signal = x_pix_ppg_res[i]
+    f,time,Sxx = spectrogram(signal,fs=fs,nperseg=32,noverlap=16)
+    x_pix_ppg_res[i] = Sxx
+    
+final_signal = np.stack([x_ecg_res, x_gsr_res, x_inf_ppg_res, x_pix_ppg_res], axis=0)   
+final_signal = final_signal.transpose(1,0,2,3)
+
+print(final_signal.shape)  
+
+
+# resampled data loaders
+x_train_res_list, x_valid_res_list, x_test_res_list, y_res_train, y_res_valid, y_res_test = split_data([final_signal], y, train_indices, valid_indices, test_indices)
+
+train_res_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_res_train)), batch_size=32, shuffle=False)
+valid_res_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_res_valid)), batch_size=32, shuffle=False)
+test_res_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_res_test)), batch_size=32, shuffle=False)
+
+
+
+######################################################
+########### not normalized data loaders ##############
+######################################################
+
 x_train_list, x_valid_list, x_test_list, y_train, y_valid, y_test = split_data([x_inf_ppg, x_ecg, x_gsr, x_pix_ppg], y, train_indices, valid_indices, test_indices)
 
 train_dataset = FcnDataset(list(zip(x_train_list[0],
@@ -107,7 +172,12 @@ train_data_loader = torch.utils.data.DataLoader(dataset=train_dataset, shuffle=T
 valid_data_loader = torch.utils.data.DataLoader(dataset=valid_dataset, shuffle=True, batch_size=12)
 test_data_loader = torch.utils.data.DataLoader(dataset=test_dataset, shuffle=True, batch_size=12)
 
-# normalized data loaders
+
+
+######################################
+###### normalized data loaders #######
+######################################
+
 '''
 x_norm_train_list, x_norm_valid_list, x_norm_test_list, y_train, y_valid, y_test = split_data([x_inf_ppg_norm, x_ecg_norm, x_gsr_norm, x_pix_ppg_norm], y, train_indices, valid_indices, test_indices)
 
