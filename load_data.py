@@ -101,6 +101,21 @@ x_gsr_res = [resample(x, resample_size) for x in x_gsr]
 x_inf_ppg_res = [resample(x, resample_size) for x in x_inf_ppg]
 x_pix_ppg_res = [resample(x, resample_size) for x in x_pix_ppg]
 
+x_all = []
+for i in range(len(x_ecg_res)):
+    signals = np.stack([x_ecg_res[i], x_gsr_res[i], x_inf_ppg_res[i]], axis=0)
+    x_all.append(signals)
+
+
+x_all_tensor = torch.tensor(np.array(x_all)).float()
+y_tensor = torch.tensor(y).float()
+
+x_train_res_list, x_valid_res_list, x_test_res_list, y_res_train, y_res_valid, y_res_test = split_data([x_all], y, train_indices, valid_indices, test_indices)
+
+train_res_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_res_train)), batch_size=32, shuffle=False)
+valid_res_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_res_valid)), batch_size=32, shuffle=False)
+test_res_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_res_test)), batch_size=32, shuffle=False)
+
 #pour x_ecg_res : 
 for i in range (len(x_ecg_res)) : 
     fs = 4
@@ -138,13 +153,12 @@ final_signal = final_signal.transpose(1,0,2,3)
 
 print(final_signal.shape)  
 
-
 # resampled data loaders
-x_train_res_list, x_valid_res_list, x_test_res_list, y_res_train, y_res_valid, y_res_test = split_data([final_signal], y, train_indices, valid_indices, test_indices)
+x_train_res_list, x_valid_res_list, x_test_res_list, y_freq_train, y_freq_valid, y_freq_test = split_data([final_signal], y, train_indices, valid_indices, test_indices)
 
-train_res_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_res_train)), batch_size=32, shuffle=False)
-valid_res_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_res_valid)), batch_size=32, shuffle=False)
-test_res_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_res_test)), batch_size=32, shuffle=False)
+train_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_freq_train)), batch_size=32, shuffle=False)
+valid_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_freq_valid)), batch_size=32, shuffle=False)
+test_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_freq_test)), batch_size=32, shuffle=False)
 
 
 
@@ -177,7 +191,6 @@ test_data_loader = torch.utils.data.DataLoader(dataset=test_dataset, shuffle=Tru
 ######################################
 ###### normalized data loaders #######
 ######################################
-
 '''
 x_norm_train_list, x_norm_valid_list, x_norm_test_list, y_train, y_valid, y_test = split_data([x_inf_ppg_norm, x_ecg_norm, x_gsr_norm, x_pix_ppg_norm], y, train_indices, valid_indices, test_indices)
 

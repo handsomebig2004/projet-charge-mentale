@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
-from load_data import train_res_data_loader, valid_res_data_loader, test_res_data_loader
+from load_data import train_freq_data_loader, valid_freq_data_loader, test_freq_data_loader
 import matplotlib.pyplot as plt
 
 model = models.resnet18(weights='DEFAULT')
@@ -41,7 +41,7 @@ def valid_epoch(test_loader, loss_func, model):
     return avg_loss
 
 for epoch in range(n_epochs):
-    for x_batch, y_batch in train_res_data_loader:
+    for x_batch, y_batch in train_freq_data_loader:
         model.train()
         optimizer.zero_grad()
         outputs = model(x_batch)
@@ -50,7 +50,7 @@ for epoch in range(n_epochs):
         optimizer.step()
         
     with torch.no_grad():
-        valid_loss = valid_epoch(valid_res_data_loader, criterion, model)
+        valid_loss = valid_epoch(valid_freq_data_loader, criterion, model)
     
     print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
     train_loss_list.append(loss.item())
@@ -58,8 +58,8 @@ for epoch in range(n_epochs):
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
 plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
     
-print(f'test mse: {valid_epoch(valid_res_data_loader, criterion, model)}')
-print(f'test mae: {valid_epoch(valid_res_data_loader, nn.L1Loss(), model)}')
+print(f'test mse: {valid_epoch(test_freq_data_loader, criterion, model)}')
+print(f'test mae: {valid_epoch(test_freq_data_loader, nn.L1Loss(), model)}')
 
 plt.legend()
 plt.show()
