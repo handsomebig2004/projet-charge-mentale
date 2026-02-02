@@ -39,7 +39,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
 
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy().transpose():
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
 
@@ -88,7 +88,7 @@ final_signal = final_signal.transpose(1,0,2,3)
 
 print(final_signal.shape)  
 
-y_tensor = torch.tensor(y).float() 
+y_tensor = torch.tensor(np.array(y), dtype=torch.float32)
 train_size = int(0.8 * len(final_signal))
 
 train_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[:train_size], y_tensor[:train_size])), batch_size=32, shuffle=False)
@@ -97,7 +97,7 @@ test_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[train_size:]
 
 model = models.resnet18(weights='DEFAULT')
 model.conv1 = nn.Conv2d(4,64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
-model.fc = torch.nn.Linear(in_features=2048, out_features=1)
+model.fc = torch.nn.Linear(in_features=512, out_features=1)
 
 for param in model.parameters():
     param.requires_grad = False
