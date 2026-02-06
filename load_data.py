@@ -79,7 +79,7 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y_sub_categories.append(np.float32(trial))
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 8].to_numpy().transpose():
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 7].to_numpy():
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y_weight.append(np.float32(trial))
 
@@ -97,7 +97,7 @@ train_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) 
 valid_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in valid_indices_base]
 test_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in test_indices_base]
 
-
+"""
 
 ######################################
 ####### Leave one person out #########
@@ -171,7 +171,7 @@ for patient_index in range(NUM_PATIENTS):
     train_freq_data_loader_list.append(torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_freq_train, y_weight)), batch_size=32, shuffle=False))
     test_freq_data_loader_list.append(torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_freq_test, y_weight)), batch_size=32, shuffle=False))
 
-
+"""
 
 ######################################
 ########## resampled data ############
@@ -236,9 +236,9 @@ final_signal = final_signal.transpose(1,0,2,3)
 # resampled data loaders
 x_train_res_list, x_valid_res_list, x_test_res_list, y_freq_train, y_freq_valid, y_freq_test = split_data([final_signal], y_sub_categories, train_indices, valid_indices, test_indices)
 
-train_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_freq_train)), batch_size=32, shuffle=False)
-valid_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_freq_valid)), batch_size=32, shuffle=False)
-test_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_freq_test)), batch_size=32, shuffle=False)
+train_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_freq_train,y_weight)), batch_size=32, shuffle=False)
+valid_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_freq_valid,y_weight)), batch_size=32, shuffle=False)
+test_freq_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_freq_test,y_weight)), batch_size=32, shuffle=False)
 
 
 
