@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 import torch
 from load_data import train_res_data_loader, valid_res_data_loader, test_res_data_loader
+from load_data import x_ecg, x_inf_ppg, x_gsr, x_
 
 class LSTM(nn.Module):
 
@@ -35,7 +36,7 @@ class LSTM(nn.Module):
         return x
 
 
-n_epochs = 20
+n_epochs = 50
 model = LSTM(input_size=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()

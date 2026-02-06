@@ -43,6 +43,7 @@ x_gsr = []
 x_inf_ppg = []
 x_pix_ppg = []
 y = []
+y_sub_categories = []
 
 for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
     if folder_name[0][-1] != '/':
@@ -74,6 +75,9 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy().transpose():
             for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
                 y.append(np.float32(trial))
+        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[0:6, 1:7].to_numpy().transpose():
+            for k in range(int(len(x_ecg) / 132)): # duplicate results for the same trial (since we split the in 30s slices)
+                y_sub_categories.append(np.float32(trial))
 
 x_inf_ppg_norm = torch.nn.functional.normalize(torch.tensor(x_inf_ppg))
 x_ecg_norm = torch.nn.functional.normalize(torch.tensor(x_ecg))
@@ -111,18 +115,14 @@ for i in range(len(x_ecg_res)):
     signals = np.stack([x_ecg_res[i], x_gsr_res[i], x_inf_ppg_res[i]], axis=0)
     x_all.append(signals)
 
-
-x_all_tensor = torch.tensor(np.array(x_all)).float()
-y_tensor = torch.tensor(y).float()
-
-x_train_res_list, x_valid_res_list, x_test_res_list, y_res_train, y_res_valid, y_res_test = split_data([x_all], y, train_indices_res, valid_indices_res, test_indices_res)
+x_train_res_list, x_valid_res_list, x_test_res_list, y_res_train, y_res_valid, y_res_test = split_data([x_all], y_sub_categories, train_indices_res, valid_indices_res, test_indices_res)
 
 train_res_data_loader = torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_res_train)), batch_size=32, shuffle=False)
 valid_res_data_loader = torch.utils.data.DataLoader(list(zip(x_valid_res_list[0], y_res_valid)), batch_size=32, shuffle=False)
 test_res_data_loader = torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_res_test)), batch_size=32, shuffle=False)
 
 #pour x_ecg_res : 
-for i in range (len(x_ecg_res)) : 
+for i in range (len(x_ecg_res)) :
     fs = 4
     t = np.linspace(0,30,fs*30)
     signal = x_ecg_res[i]
@@ -130,7 +130,7 @@ for i in range (len(x_ecg_res)) :
     x_ecg_res[i] = Sxx
 
 #pour x_gsr_res : 
-for i in range (len(x_gsr_res)) : 
+for i in range (len(x_gsr_res)) :
     fs = 4
     t = np.linspace(0,30,fs*30)
     signal = x_gsr_res[i]
