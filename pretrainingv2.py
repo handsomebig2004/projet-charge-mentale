@@ -4,11 +4,7 @@ from torchvision import models
 from load_data import train_freq_data_loader, valid_freq_data_loader, test_freq_data_loader
 import matplotlib.pyplot as plt
 
-for x_batch, y_batch, y_weights in train_freq_data_loader:
-    print(y_weights.shape)
-    break
-
-"""models_list = []
+models_list = []
 optimizer_list = []
 loss_list = []
 
@@ -42,30 +38,32 @@ n_epochs = 50
 train_loss_list = []
 valid_loss_list = []
 
-def valid_epoch(test_loader, loss_func, model):
-    
-    model.eval()
-    tot_loss, n_samples=0,0
+def valid_epoch(test_loader, loss_list, models_list):
+    tot_loss, n_samples=[0 for _ in range(6)], [0 for _ in range(6)]
     with torch.no_grad():
-        for x_batch, y_batch in test_loader:
-
-            preds = model(x_batch)
-
-            loss = loss_func(preds.squeeze(), y_batch)
+        for x_batch, y_batch, _ in test_loader:
             
-            n_samples += y_batch.size(0)
-            tot_loss += loss.item() * y_batch.size(0)
+            for i in range(6) :
+                y = feature_extraction(y_batch,i)
+                y = torch.tensor(y, dtype=torch.float32)
+                models_list[i].eval()
+                outputs = models_list[i](x_batch)
+                loss = loss_list[i](outputs.squeeze(), y)
+                tot_loss[i] += loss.item() * y.size(0)
+                n_samples[i] += y.size(0)
 
-    avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
-    valid_loss_list.append(avg_loss)
-    return avg_loss
+    avg_loss = [tot_loss[i] / n_samples[i] if n_samples[i] > 0 else 0.0 for i in range(6)]
+    valid_loss_list.append(sum(avg_loss) / len(avg_loss))
+    return sum(avg_loss) / len(avg_loss)
 
-epoch_loss = [0 for _ in range(6)]
-n_samples = [0 for _ in range(6)]
-final_loss = [0 for _ in range(6)]
-pond_loss = 0
+
+final_loss = 0
+
 
 for epoch in range(n_epochs):
+
+    epoch_loss = [0 for _ in range(6)]
+    n_samples = [0 for _ in range(6)]
 
     for x_batch, y_batch, weight_batch in train_freq_data_loader:
         
@@ -81,22 +79,19 @@ for epoch in range(n_epochs):
             epoch_loss[i] += loss.item() * y.size(0)
             n_samples[i] += y.size(0)
         
-    for i in range(6): 
-        final_loss[i] = sum(epoch_loss[i]) / sum(n_samples[i])
-
     
+    final_loss = sum(epoch_loss) / sum(n_samples) if sum(n_samples) > 0 else 0.0
 
-
-    valid_loss = valid_epoch(valid_freq_data_loader, criterion, model)
+    valid_loss = valid_epoch(valid_freq_data_loader, loss_list, models_list)
     
-    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {(final_loss):.4f}, Valid loss; {valid_loss:.4f}")
-    train_loss_list.append(epoch_loss/n_samples)
+    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {(final_loss):.4f}", f"Valid loss; {valid_loss:.4f}")
+    train_loss_list.append(final_loss)
     
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
 plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
     
-print(f'test mse: {valid_epoch(test_freq_data_loader, criterion, model)}')
-print(f'test mae: {valid_epoch(test_freq_data_loader, nn.L1Loss(), model)}')
+#print(f'test mse: {valid_epoch(test_freq_data_loader, criterion, model)}')
+#print(f'test mae: {valid_epoch(test_freq_data_loader, nn.L1Loss(), model)}')
 
 plt.legend()
-plt.show()"""
+plt.show()
