@@ -1,8 +1,5 @@
-from scipy.signal import resample
-import pandas as pd
+
 import matplotlib.pyplot as plt
-import os
-import numpy as np
 import torch.nn as nn
 import torch
 from load_data import train_res_data_loader, valid_res_data_loader, test_res_data_loader
@@ -52,18 +49,9 @@ def valid_epoch(test_loader, loss_func, model):
     tot_loss, n_samples=0,0
     with torch.no_grad():
         for x_batche_l, y_batch in test_loader:
-            #preparing all inputs
-
+            
             preds = model(x_batche_l)
             
-            if tot_loss == 0:
-                pass
-                #print(preds[:5])
-                #print(y[:5])
-                # plt.plot(range(len(preds)), preds)
-                # plt.plot(range(len(y)), y)
-                # plt.show()
-
             loss = loss_func(preds.squeeze(), y_batch)
             
             n_samples += y_batch.size(0)
@@ -74,20 +62,26 @@ def valid_epoch(test_loader, loss_func, model):
     valid_loss_list.append(avg_loss)
     return avg_loss
 
+epoch_loss = 0
+n_samples = 0
+
 for epoch in range(n_epochs):
     for x_batch, y_batch in train_res_data_loader:
         model.train()
         optimizer.zero_grad()
         outputs = model(x_batch)
         loss = loss_fn(outputs.squeeze(), y_batch)
+        epoch_loss += loss.item() * y_batch.size(0)
+        n_samples += y_batch.size(0)
+
         loss.backward()
         optimizer.step()
         
     with torch.no_grad():
         valid_loss = valid_epoch(valid_res_data_loader, loss_fn, model)
     
-    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
-    train_loss_list.append(loss.item())
+    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {(epoch_loss/n_samples):.4f}, Valid loss; {valid_loss:.4f}")
+    train_loss_list.append(epoch_loss/n_samples)
     
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
 plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')

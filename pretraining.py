@@ -16,7 +16,7 @@ for param in model.fc.parameters():
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-n_epochs = 50
+n_epochs = 20
 
 train_loss_list = []
 valid_loss_list = []
@@ -35,7 +35,6 @@ def valid_epoch(test_loader, loss_func, model):
             n_samples += y_batch.size(0)
             tot_loss += loss.item() * y_batch.size(0)
 
-    model.train()
     avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
     valid_loss_list.append(avg_loss)
     return avg_loss
