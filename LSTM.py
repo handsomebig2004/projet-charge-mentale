@@ -5,36 +5,7 @@ import os
 import numpy as np
 import torch.nn as nn
 import torch
-
-
-x_ecg = []
-x_gsr = []
-x_inf_ppg = []
-x_pix_ppg = []
-y = []
-
-for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
-    if folder_name[0][-1] != '/':
-        
-        # 100 Hz for 30 sec ->  3_000
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ecg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_ecg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_gsr.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_gsr.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-        for trial in pd.read_csv(f"{folder_name[0]}/inf_ppg.csv").to_numpy().transpose():
-            for k in range(len(trial) // 3_000 - 1):
-                x_inf_ppg.append(list(trial[k*3_000:(k+1)*3_000].astype(np.float32)))
-            
-        # 256 Hz for 30 sec -> 7_680
-        for trial in  pd.read_csv(f"{folder_name[0]}/pixart.csv").to_numpy().transpose():
-            for k in range(len(trial) // 7_680 - 1):
-                x_pix_ppg.append(list(trial[k*7_680:(k+1)*7_680].astype(np.float32)))
-        for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
-            for k in range(24): # duplicate results for the same trial (since we split the in 30s slices)
-                y.append(np.float32(trial))
-
+from load_data import train_res_data_loader, valid_res_data_loader, test_res_data_loader
 
 class LSTM(nn.Module):
 
@@ -66,31 +37,14 @@ class LSTM(nn.Module):
 
         return x
 
-    
-resample_size = 120
-x_ecg_res = [resample(x, resample_size) for x in x_ecg]
-x_gsr_res = [resample(x, resample_size) for x in x_gsr]
-x_inf_ppg_res = [resample(x, resample_size) for x in x_inf_ppg]
-#x_pix_ppg_res = resample(x_pix_ppg, resample_size) 
-
-#concaténer mes signaux
-x_all = []
-for i in range(len(x_ecg_res)):
-    signals = np.stack([x_ecg_res[i], x_gsr_res[i], x_inf_ppg_res[i]], axis=0)
-    x_all.append(signals)
-
-
-x_all_tensor = torch.tensor(np.array(x_all)).float()
-y_tensor = torch.tensor(y).float() 
-
-train_size = int(0.8 * len(x_all_tensor))
-train_dataloader = torch.utils.data.DataLoader(list(zip(x_all_tensor[:train_size], y_tensor[:train_size])), batch_size=32, shuffle=False)
-test_dataloader = torch.utils.data.DataLoader(list(zip(x_all_tensor[train_size:], y_tensor[train_size:])), batch_size=32, shuffle=False)
 
 n_epochs = 20
 model = LSTM(input_size=3)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()
+
+train_loss_list = []
+valid_loss_list = []
 
 def valid_epoch(test_loader, loss_func, model):
     
@@ -117,10 +71,11 @@ def valid_epoch(test_loader, loss_func, model):
 
     model.train()
     avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
+    valid_loss_list.append(avg_loss)
     return avg_loss
 
 for epoch in range(n_epochs):
-    for x_batch, y_batch in train_dataloader:
+    for x_batch, y_batch in train_res_data_loader:
         model.train()
         optimizer.zero_grad()
         outputs = model(x_batch)
@@ -129,6 +84,16 @@ for epoch in range(n_epochs):
         optimizer.step()
         
     with torch.no_grad():
-        valid_loss = valid_epoch(test_dataloader, loss_fn, model)
+        valid_loss = valid_epoch(valid_res_data_loader, loss_fn, model)
     
     print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
+    train_loss_list.append(loss.item())
+    
+plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
+plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
+    
+print(f'test mse: {valid_epoch(test_res_data_loader, loss_fn, model)}')
+print(f'test mae: {valid_epoch(test_res_data_loader, nn.L1Loss(), model)}')
+
+plt.legend()
+plt.show()

@@ -25,7 +25,6 @@ for folder_name in os.walk("data/MAUS/Data/Raw_data/"):
         for trial in pd.read_csv(f"data/MAUS/Subjective_rating/{folder_name[0][-3:]}/NASA_TLX.csv").iloc[7, 1:7].to_numpy():
             y.append(np.float32(trial)/100)
 
-
 # resample data to 4Hz on 30 seconds
 resample_size = 120
 x_ecg_res = [resample(x, resample_size) for x in x_ecg]
@@ -38,6 +37,7 @@ x_inf_ppg_res_norm = (np.array(x_inf_ppg_res) - np.mean(x_inf_ppg_res)) / np.std
 
 X = []
 y_final = []
+
 
 for i in range(len(x_ecg_res)):
     X.append(np.concatenate([x_ecg_res_norm[i], x_gsr_res_norm[i], x_inf_ppg_res_norm[i]]))
