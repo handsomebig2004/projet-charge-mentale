@@ -107,7 +107,7 @@ for param in model.fc.parameters():
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-n_epochs = 20
+n_epochs = 50
 
 def valid_epoch(test_loader, loss_func, model):
     
@@ -127,6 +127,9 @@ def valid_epoch(test_loader, loss_func, model):
     valid_loss_list.append(avg_loss)
     return avg_loss
 
+epoch_loss = 0
+n_samples = 0
+
 for epoch in range(n_epochs):
     for x_batch, y_batch in train_freq_data_loader:
         model.train()
@@ -135,12 +138,13 @@ for epoch in range(n_epochs):
         loss = criterion(outputs.squeeze(), y_batch)
         loss.backward()
         optimizer.step()
+        epoch_loss += loss.item() * y_batch.size(0)
+        n_samples += y_batch.size(0)
         
-    with torch.no_grad():
-        valid_loss = valid_epoch(valid_freq_data_loader, criterion, model)
+    valid_loss = valid_epoch(valid_freq_data_loader, criterion, model)
     
-    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
-    train_loss_list.append(loss.item())
+    print(f"Epoch {epoch+1}/{n_epochs}, Loss: {(epoch_loss/n_samples):.4f}, Valid loss; {valid_loss:.4f}")
+    train_loss_list.append(epoch_loss/n_samples)
     
 plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
 plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
