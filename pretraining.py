@@ -1,8 +1,8 @@
-import os
-import numpy as np 
-import pandas as pd
 import torch
 import torch.nn as nn
+import pandas as pd
+import os
+import numpy as np
 from torchvision import models
 from scipy.signal import resample
 from scipy.signal import spectrogram
@@ -94,7 +94,7 @@ train_size = int(0.8 * len(final_signal))
 train_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[:train_size], y_tensor[:train_size])), batch_size=32, shuffle=False)
 test_dataloader = torch.utils.data.DataLoader(list(zip(final_signal[train_size:], y_tensor[train_size:])), batch_size=32, shuffle=False)
 
-#model = models.resnet50(weights='DEFAULT')
+
 model = models.resnet18(weights='DEFAULT')
 model.conv1 = nn.Conv2d(4,64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3))
 model.fc = torch.nn.Linear(in_features=512, out_features=1)
@@ -107,25 +107,16 @@ for param in model.fc.parameters():
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-n_epochs = 200
+n_epochs = 50
 
 def valid_epoch(test_loader, loss_func, model):
     
     model.eval()
     tot_loss, n_samples=0,0
     with torch.no_grad():
-        for x_batche_l, y_batch in test_loader:
-            #preparing all inputs
+        for x_batch, y_batch in test_loader:
 
-            preds = model(x_batche_l)
-            
-            if tot_loss == 0:
-                pass
-                #print(preds[:5])
-                #print(y[:5])
-                # plt.plot(range(len(preds)), preds)
-                # plt.plot(range(len(y)), y)
-                # plt.show()
+            preds = model(x_batch)
 
             loss = loss_func(preds.squeeze(), y_batch)
             
@@ -134,10 +125,11 @@ def valid_epoch(test_loader, loss_func, model):
 
     model.train()
     avg_loss = tot_loss / n_samples if n_samples > 0 else 0.0
+    valid_loss_list.append(avg_loss)
     return avg_loss
 
 for epoch in range(n_epochs):
-    for x_batch, y_batch in train_dataloader:
+    for x_batch, y_batch in train_freq_data_loader:
         model.train()
         optimizer.zero_grad()
         outputs = model(x_batch)
@@ -146,6 +138,16 @@ for epoch in range(n_epochs):
         optimizer.step()
         
     with torch.no_grad():
-        valid_loss = valid_epoch(test_dataloader, criterion, model)
+        valid_loss = valid_epoch(valid_freq_data_loader, criterion, model)
     
     print(f"Epoch {epoch+1}/{n_epochs}, Loss: {loss.item():.4f}, Valid loss; {valid_loss:.4f}")
+    train_loss_list.append(loss.item())
+    
+plt.plot(range(len(train_loss_list)), train_loss_list, label='train')
+plt.plot(range(len(valid_loss_list)), valid_loss_list, label='valid')
+    
+print(f'test mse: {valid_epoch(test_freq_data_loader, criterion, model)}')
+print(f'test mae: {valid_epoch(test_freq_data_loader, nn.L1Loss(), model)}')
+
+plt.legend()
+plt.show()
