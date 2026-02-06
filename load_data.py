@@ -96,7 +96,7 @@ train_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) 
 valid_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in valid_indices_base]
 test_indices = [x * (len(x_ecg) // NUM_PATIENTS) + i for i in range(len(x_ecg) // NUM_PATIENTS) for x in test_indices_base]
 
-
+"""
 
 ######################################
 ####### Leave one person out #########
@@ -170,7 +170,7 @@ for patient_index in range(NUM_PATIENTS):
     train_freq_data_loader_list.append(torch.utils.data.DataLoader(list(zip(x_train_res_list[0], y_freq_train, y_weight)), batch_size=32, shuffle=False))
     test_freq_data_loader_list.append(torch.utils.data.DataLoader(list(zip(x_test_res_list[0], y_freq_test, y_weight)), batch_size=32, shuffle=False))
 
-
+"""
 
 ######################################
 ########## resampled data ############
