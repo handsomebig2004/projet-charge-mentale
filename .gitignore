@@ -1,3 +1,4 @@
 data/UNIVERSE
 __pycache__
+*.pyc
 splits_maus
