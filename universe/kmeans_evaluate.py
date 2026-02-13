@@ -44,7 +44,7 @@ def _safe_num(s):
 
 
 def compute_unsup_metrics(X: np.ndarray, labels: np.ndarray):
-    # 需要至少2个簇且每簇至少1个点；silhouette 还要求样本数 > 簇数
+    # 计算轮廓系数sil，ch指数，db指数
     uniq = np.unique(labels)
     if len(uniq) < 2 or len(X) <= len(uniq):
         return dict(sil=np.nan, ch=np.nan, db=np.nan)
@@ -57,6 +57,7 @@ def compute_unsup_metrics(X: np.ndarray, labels: np.ndarray):
 
 
 def check_weighted_monotonic(df: pd.DataFrame, level_col: str):
+    # 检查不同 level 的 SCORE_COL 是否单调递增（low < mid < high），并返回各 level 的均值。
     if SCORE_COL not in df.columns or level_col not in df.columns:
         return dict(monotonic=np.nan, mean_low=np.nan, mean_mid=np.nan, mean_high=np.nan)
 
@@ -80,6 +81,7 @@ def check_weighted_monotonic(df: pd.DataFrame, level_col: str):
 
 
 def plot_weighted_box(df: pd.DataFrame, title: str, out_path: str, level_col: str):
+    # 画箱线图，展示不同 level 的 SCORE_COL 分布。
     d = df.copy()
     d[SCORE_COL] = _safe_num(d[SCORE_COL])
     d = d.dropna(subset=[SCORE_COL, level_col])
@@ -102,8 +104,8 @@ def plot_weighted_box(df: pd.DataFrame, title: str, out_path: str, level_col: st
 
 def stability_6d(df: pd.DataFrame, n_runs=10, seeds=None):
     """
-    在 6D 标准化空间上重复跑 KMeans，比较聚类结果一致性（ARI/NMI 的平均值）。
-    这一步不依赖你保存的 cluster id，而是重新聚类评估“可重复性”。
+    由于 KMeans 的随机性，跑多次看结果稳定性。理论上如果有明显的簇结构，ARI 和 NMI 应该较高且稳定。
+    在 6D 标准化空间上重复跑 KMeans，比较ARI和NMI 的平均值。
     """
     if seeds is None:
         seeds = list(range(n_runs))
@@ -134,6 +136,39 @@ def stability_6d(df: pd.DataFrame, n_runs=10, seeds=None):
     return dict(ari_mean=float(np.mean(aris)) if aris else np.nan,
                 nmi_mean=float(np.mean(nmis)) if nmis else np.nan)
 
+def stability_1d(df: pd.DataFrame,
+                 score_col: str = "Weighted Nasa Score",
+                 n_clusters: int = 3,
+                 n_runs: int = 10,
+                 seeds=None):
+    """
+    在 1D 空间上重复跑 KMeans，比较ARI和NMI 的平均值。
+    """
+    if seeds is None:
+        seeds = list(range(n_runs))
+
+    scores = pd.to_numeric(df.get(score_col), errors="coerce").dropna().to_numpy(dtype=float)
+
+    if len(scores) < n_clusters:
+        return {"ari_mean": np.nan, "nmi_mean": np.nan}
+
+    X = scores.reshape(-1, 1)
+
+    labels_list = []
+    for sd in seeds:
+        km = KMeans(n_clusters=n_clusters, random_state=sd, n_init="auto")
+        labels_list.append(km.fit_predict(X))
+
+    aris, nmis = [], []
+    for i in range(len(labels_list)):
+        for j in range(i + 1, len(labels_list)):
+            aris.append(adjusted_rand_score(labels_list[i], labels_list[j]))
+            nmis.append(normalized_mutual_info_score(labels_list[i], labels_list[j]))
+
+    return {
+        "ari_mean": float(np.mean(aris)) if aris else np.nan,
+        "nmi_mean": float(np.mean(nmis)) if nmis else np.nan,
+    }
 
 def main():
     ensure_dir(OUT_DIR)
@@ -163,6 +198,7 @@ def main():
 
             metrics = compute_unsup_metrics(X, y)
             mono = check_weighted_monotonic(df, LEVEL1_COL)
+            stab = stability_1d(df)  # 用原 df 重新聚类做稳定性
 
             counts = df[LEVEL1_COL].value_counts().to_dict()
             rows_1d.append({
@@ -174,6 +210,7 @@ def main():
                 "n_high": int(counts.get("high", 0)),
                 **metrics,
                 **mono,
+                **stab,
             })
 
             # 画箱线图
